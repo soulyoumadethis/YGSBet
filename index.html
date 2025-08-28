@@ -1,18 +1,113 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YGSBet.xyz - Fake Casino with Fake Money</title>
+    <title>YGSBet.xyz - Casino with YGS Coins</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at center, #2D1B4C 0%, #1A0A2E 70%, #100A1E 100%);
+            background-size: cover;
+            animation: gradientShift 15s ease infinite;
+            margin: 0;
+            height: 100vh;
+            overflow: auto;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
         }
         canvas {
             border-radius: 0.5rem;
-            background-color: #1f2937;
+            background-color: #2D1B4C;
+            box-shadow: 0 0 20px rgba(107, 70, 193, 0.3);
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 64px;
+            background: #1A0A2E;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 1rem;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+            transition: width 0.3s ease;
+        }
+        .sidebar:hover {
+            width: 200px;
+        }
+        .sidebar a, .sidebar button {
+            color: #C4B5FD;
+            padding: 1rem;
+            width: 100%;
+            text-align: left;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sidebar a:hover, .sidebar button:hover {
+            color: #ffffff;
+            background: #6B46C1;
+            box-shadow: 0 0 10px rgba(107, 70, 193, 0.5);
+        }
+        .sidebar-icon {
+            font-size: 1.2rem;
+        }
+        .sidebar-text {
+            display: none;
+        }
+        .sidebar:hover .sidebar-text {
+            display: inline;
         }
         .grid {
             display: grid;
@@ -23,7 +118,7 @@
         .cell {
             width: 60px;
             height: 60px;
-            background-color: #374151;
+            background-color: #3F2A59;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -33,18 +128,20 @@
             transition: background-color 0.3s ease, transform 0.2s ease;
         }
         .cell:hover {
-            background-color: #4b5563;
+            background-color: #4C3676;
             transform: scale(1.05);
         }
         .revealed {
-            background-color: #6b7280;
+            background-color: #5B4582;
             transform: scale(1);
         }
         .mine {
-            background-color: #dc2626;
+            background-color: #DC2626;
+            box-shadow: 0 0 10px rgba(220, 38, 38, 0.5);
         }
         .safe {
-            background-color: #16a34a;
+            background-color: #8B5CF6;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
         }
         .game-section {
             display: none;
@@ -54,15 +151,6 @@
         .game-section.active {
             display: block;
             opacity: 1;
-        }
-        nav a {
-            transition: color 0.3s ease, background-color 0.3s ease;
-            padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
-        }
-        nav a:hover {
-            color: #ffffff;
-            background-color: #4f46e5;
         }
         .result-animate {
             animation: fadeIn 0.5s ease;
@@ -74,90 +162,219 @@
         .multiplier-indicator {
             font-size: 2.5rem;
             font-weight: bold;
-            color: #10b981;
-            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+            color: #8B5CF6;
+            text-shadow: 0 0 15px rgba(139, 92, 246, 0.7);
             transition: transform 0.2s ease;
         }
         .multiplier-indicator.active {
             transform: scale(1.1);
         }
+        input {
+            transition: all 0.3s ease;
+        }
         input:focus {
-            ring-color: #6366f1;
+            ring-color: #A78BFA;
+            box-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
         }
         button {
             transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(107, 70, 193, 0.3);
+        }
+        button:hover {
+            box-shadow: 0 0 15px rgba(107, 70, 193, 0.5);
+        }
+        .slot-machine {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .reel {
+            width: 80px;
+            height: 120px;
+            background: #3F2A59;
+            border: 2px solid #6B46C1;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            overflow: hidden;
+            position: relative;
+        }
+        .reel-content {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            animation: spin 1.5s ease-out forwards;
+        }
+        @keyframes spin {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-80px); }
+        }
+        @media (max-width: 640px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                bottom: 0;
+                top: auto;
+                flex-direction: row;
+                justify-content: space-around;
+                padding: 0.5rem 0;
+            }
+            .sidebar:hover {
+                width: 100%;
+            }
+            .sidebar a, .sidebar button {
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
+            .sidebar-text {
+                display: none !important;
+            }
+            .slot-machine {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .reel {
+                width: 60px;
+                height: 90px;
+            }
+            .reel-content {
+                animation: spin 1.5s ease-out forwards;
+            }
+            @keyframes spin {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(-60px); }
+            }
+        }
+        .password-section {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(26, 10, 46, 0.9);
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 20px rgba(107, 70, 193, 0.5);
+            z-index: 30;
+            text-align: center;
+        }
+        .password-section.hidden {
+            display: none;
+        }
+        .content-wrapper {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 1rem;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-4 sm:p-6">
-    <header class="w-full max-w-4xl mb-6 fixed top-0 bg-gray-900 z-10 py-4 shadow-md">
-        <div class="flex justify-between items-center">
-            <h1 class="text-3xl sm:text-4xl font-bold text-indigo-400">YGSBet.xyz</h1>
-            <button id="reset-balance" class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-lg text-sm transition">Reset Balance</button>
+<body class="text-white">
+    <div class="content-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <div class="mb-4 text-center">
+                <h1 class="text-xl font-bold text-purple-400 sidebar-text">YGSBet.xyz</h1>
+            </div>
+            <a href="#limbo"><span class="sidebar-icon">🎰</span><span class="sidebar-text">Limbo</span></a>
+            <a href="#mines"><span class="sidebar-icon">💣</span><span class="sidebar-text">Mines</span></a>
+            <a href="#crash"><span class="sidebar-icon">📈</span><span class="sidebar-text">Crash</span></a>
+            <a href="#slots"><span class="sidebar-icon">🎰</span><span class="sidebar-text">Slots</span></a>
+            <button id="reset-balance"><span class="sidebar-icon">🔄</span><span class="sidebar-text">Reset Balance</span></button>
+        </aside>
+
+        <main id="main-content" class="max-w-2xl w-full">
+            <header class="mb-6 text-center">
+                <p class="text-gray-400 mb-4">Casino with YGS Coins</p>
+                <div class="inline-block bg-gray-800 py-2 px-4 rounded-lg text-xl font-semibold">
+                    Balance: <span id="balance" class="text-purple-300">10000</span> YGS Coins
+                </div>
+                <p class="text-gray-500 mt-2 text-sm">YGSBet BETA</p>
+            </header>
+
+            <!-- Limbo Game -->
+            <section id="limbo" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg text-center w-full">
+                <h2 class="text-2xl font-semibold text-purple-300 mb-4">Limbo</h2>
+                <p class="text-gray-400 mb-4">Bet on a target multiplier. If the random number is below, you win!</p>
+                <div class="flex flex-col sm:flex-row gap-4 mb-4 justify-center items-center">
+                    <input type="number" id="limbo-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-1/3 max-w-xs">
+                    <input type="number" id="limbo-target" placeholder="Target Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-1/3 max-w-xs">
+                    <button onclick="playLimbo()" class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg transition">Play</button>
+                </div>
+                <p id="limbo-result" class="text-gray-300 font-medium"></p>
+            </section>
+
+            <!-- Mines Game -->
+            <section id="mines" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg text-center w-full">
+                <h2 class="text-2xl font-semibold text-purple-300 mb-4">Mines</h2>
+                <p class="text-gray-400 mb-4">Choose number of mines (1-24), bet, and reveal cells without hitting mines.</p>
+                <div class="flex flex-col sm:flex-row gap-4 mb-4 justify-center items-center">
+                    <input type="number" id="mines-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-1/3 max-w-xs">
+                    <input type="number" id="mines-count" placeholder="Number of Mines" min="1" max="24" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-1/3 max-w-xs">
+                    <button onclick="startMines()" class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg transition">Start</button>
+                </div>
+                <div id="mines-grid" class="grid mx-auto"></div>
+                <div class="flex justify-center mt-4">
+                    <button onclick="cashoutMines()" id="mines-cashout" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg transition hidden">Cash Out</button>
+                </div>
+                <p id="mines-result" class="text-gray-300 mt-4 font-medium"></p>
+                <p class="text-gray-300 mt-2 font-medium">Current Multiplier: <span id="mines-multiplier">1.00</span>x</p>
+            </section>
+
+            <!-- Crash Game -->
+            <section id="crash" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg text-center w-full">
+                <h2 class="text-2xl font-semibold text-purple-300 mb-4">Crash</h2>
+                <p class="text-gray-400 mb-4">Bet and cash out before the crash!</p>
+                <div class="flex flex-col sm:flex-row gap-4 mb-4 justify-center items-center">
+                    <input type="number" id="crash-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-1/3 max-w-xs">
+                    <input type="number" id="crash-auto" placeholder="Auto Cashout Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-1/3 max-w-xs">
+                    <button onclick="startCrash()" class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg transition">Bet</button>
+                </div>
+                <div class="flex justify-center">
+                    <button onclick="cashoutCrash()" id="crash-cashout" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg transition hidden">Cash Out</button>
+                </div>
+                <div class="text-center my-4">
+                    <span id="crash-multiplier" class="multiplier-indicator">1.00x</span>
+                </div>
+                <canvas id="crash-canvas" width="400" height="200" class="mx-auto"></canvas>
+                <p id="crash-result" class="text-gray-300 mt-4 font-medium"></p>
+            </section>
+
+            <!-- Slots Game -->
+            <section id="slots" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg text-center w-full">
+                <h2 class="text-2xl font-semibold text-purple-300 mb-4">Slots</h2>
+                <p class="text-gray-400 mb-4">Spin the reels and match symbols to win!</p>
+                <div class="slot-machine mx-auto">
+                    <div class="reel" id="reel1"><div class="reel-content"></div></div>
+                    <div class="reel" id="reel2"><div class="reel-content"></div></div>
+                    <div class="reel" id="reel3"><div class="reel-content"></div></div>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-4 mt-4 justify-center items-center">
+                    <input type="number" id="slots-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-1/3 max-w-xs">
+                    <button onclick="spinSlots()" class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg transition">Spin</button>
+                </div>
+                <p id="slots-result" class="text-gray-300 font-medium mt-4"></p>
+            </section>
+        </main>
+
+        <div class="password-section" id="password-section">
+            <h2 class="text-2xl font-semibold text-purple-300 mb-4">Enter Password</h2>
+            <input type="password" id="password-input" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 w-full max-w-xs mb-4" placeholder="Password">
+            <button onclick="checkPassword()" class="bg-purple-600 hover:bg-purple-700 text-white py-3 px-6 rounded-lg transition">Submit</button>
         </div>
-        <p class="text-center text-gray-400 mt-2">YGSBet</p>
-        <div class="text-center mt-4 text-2xl font-semibold bg-gray-800 py-2 px-4 rounded-lg inline-block mx-auto">
-            Balance: <span id="balance" class="text-indigo-300">10000</span> YGS coins
-        </div>
-        <nav class="mt-4 flex justify-center space-x-4 sm:space-x-6">
-            <a href="#limbo" class="text-indigo-300 hover:text-indigo-100">Limbo</a>
-            <a href="#mines" class="text-indigo-300 hover:text-indigo-100">Mines</a>
-            <a href="#crash" class="text-indigo-300 hover:text-indigo-100">Crash</a>
-        </nav>
-    </header>
-
-    <main class="w-full max-w-4xl space-y-6 mt-40">
-        <!-- Limbo Game -->
-        <section id="limbo" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg">
-            <h2 class="text-2xl font-semibold text-indigo-300 mb-4">Limbo</h2>
-            <p class="text-gray-400 mb-4">Bet on a target multiplier. If the random number is below, you win!</p>
-            <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <input type="number" id="limbo-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
-                <input type="number" id="limbo-target" placeholder="Target Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
-                <button onclick="playLimbo()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg transition">Play</button>
-            </div>
-            <p id="limbo-result" class="text-gray-300 font-medium"></p>
-        </section>
-
-        <!-- Mines Game -->
-        <section id="mines" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg">
-            <h2 class="text-2xl font-semibold text-indigo-300 mb-4">Mines</h2>
-            <p class="text-gray-400 mb-4">Choose number of mines (1-24), bet, and reveal cells without hitting mines.</p>
-            <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <input type="number" id="mines-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
-                <input type="number" id="mines-count" placeholder="Number of Mines" min="1" max="24" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
-                <button onclick="startMines()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg transition">Start</button>
-            </div>
-            <div id="mines-grid" class="grid"></div>
-            <div class="flex justify-center mt-4">
-                <button onclick="cashoutMines()" id="mines-cashout" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg transition hidden">Cash Out</button>
-            </div>
-            <p id="mines-result" class="text-gray-300 mt-4 font-medium"></p>
-            <p class="text-gray-300 mt-2 font-medium">Current Multiplier: <span id="mines-multiplier">1.00</span>x</p>
-        </section>
-
-        <!-- Crash Game -->
-        <section id="crash" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg">
-            <h2 class="text-2xl font-semibold text-indigo-300 mb-4">Crash</h2>
-            <p class="text-gray-400 mb-4">Bet and cash out before the crash!</p>
-            <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <input type="number" id="crash-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
-                <input type="number" id="crash-auto" placeholder="Auto Cashout Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
-                <button onclick="startCrash()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg transition">Bet</button>
-            </div>
-            <div class="flex justify-center">
-                <button onclick="cashoutCrash()" id="crash-cashout" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg transition hidden">Cash Out</button>
-            </div>
-            <div class="text-center my-4">
-                <span id="crash-multiplier" class="multiplier-indicator">1.00x</span>
-            </div>
-            <canvas id="crash-canvas" width="400" height="200"></canvas>
-            <p id="crash-result" class="text-gray-300 mt-4 font-medium"></p>
-        </section>
-    </main>
+    </div>
 
     <script>
         let balance = localStorage.getItem('balance') ? parseFloat(localStorage.getItem('balance')) : 10000;
+        let isAuthenticated = false;
+
         document.getElementById('balance').innerText = balance.toFixed(0);
 
         function updateBalance(amount) {
@@ -166,20 +383,37 @@
             localStorage.setItem('balance', balance);
         }
 
+        function checkPassword() {
+            const password = document.getElementById('password-input').value;
+            if (password === 'ygsbet2025') {
+                isAuthenticated = true;
+                document.getElementById('password-section').classList.add('hidden');
+                document.getElementById('sidebar').classList.remove('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                showGame('limbo'); // Default to Limbo on login
+            } else {
+                alert('Incorrect password!');
+            }
+        }
+
         document.getElementById('reset-balance').addEventListener('click', () => {
-            balance = 10000;
-            updateBalance(0); // To save and update display
-            alert('Balance reset to 10,000 YGS coins!');
+            if (isAuthenticated) {
+                balance = 10000;
+                updateBalance(0); // To save and update display
+                alert('Balance reset to 10,000 YGS Coins!');
+            }
         });
 
         // Navigation
         function showGame(gameId) {
-            document.querySelectorAll('.game-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            const section = document.getElementById(gameId);
-            if (section) {
-                section.classList.add('active');
+            if (isAuthenticated) {
+                document.querySelectorAll('.game-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                const section = document.getElementById(gameId);
+                if (section) {
+                    section.classList.add('active');
+                }
             }
         }
 
@@ -189,30 +423,33 @@
         });
 
         // Initial load
+        document.getElementById('sidebar').classList.add('hidden');
+        document.getElementById('main-content').classList.add('hidden');
         const initialGame = window.location.hash.slice(1) || 'limbo';
-        showGame(initialGame);
 
         // Limbo
         function playLimbo() {
-            const bet = parseFloat(document.getElementById('limbo-bet').value);
-            const target = parseFloat(document.getElementById('limbo-target').value);
-            if (isNaN(bet) || bet <= 0 || balance < bet || isNaN(target) || target < 1.01) {
-                alert('Invalid bet or target');
-                return;
+            if (isAuthenticated) {
+                const bet = parseFloat(document.getElementById('limbo-bet').value);
+                const target = parseFloat(document.getElementById('limbo-target').value);
+                if (isNaN(bet) || bet <= 0 || balance < bet || isNaN(target) || target < 1.01) {
+                    alert('Invalid bet or target');
+                    return;
+                }
+                updateBalance(-bet);
+                const result = (Math.random() * 100).toFixed(2);
+                const payout = target;
+                const resultElem = document.getElementById('limbo-result');
+                resultElem.classList.add('result-animate');
+                if (result < (100 / payout)) {
+                    const win = bet * payout;
+                    updateBalance(win);
+                    resultElem.innerText = `Result: ${result}x - You win ${win.toFixed(2)}!`;
+                } else {
+                    resultElem.innerText = `Result: ${result}x - You lose!`;
+                }
+                setTimeout(() => resultElem.classList.remove('result-animate'), 500);
             }
-            updateBalance(-bet);
-            const result = (Math.random() * 100).toFixed(2);
-            const payout = target;
-            const resultElem = document.getElementById('limbo-result');
-            resultElem.classList.add('result-animate');
-            if (result < (100 / payout)) {
-                const win = bet * payout;
-                updateBalance(win);
-                resultElem.innerText = `Result: ${result}x - You win ${win.toFixed(2)}!`;
-            } else {
-                resultElem.innerText = `Result: ${result}x - You lose!`;
-            }
-            setTimeout(() => resultElem.classList.remove('result-animate'), 500);
         }
 
         // Mines
@@ -223,50 +460,53 @@
         let minesMultiplier = 1.00;
 
         function startMines() {
-            minesBet = parseFloat(document.getElementById('mines-bet').value);
-            minesCount = parseInt(document.getElementById('mines-count').value);
-            if (isNaN(minesBet) || minesBet <= 0 || balance < minesBet || isNaN(minesCount) || minesCount < 1 || minesCount > 24) {
-                alert('Invalid bet or mines count');
-                return;
+            if (isAuthenticated) {
+                minesBet = parseFloat(document.getElementById('mines-bet').value);
+                minesCount = parseInt(document.getElementById('mines-count').value);
+                if (isNaN(minesBet) || minesBet <= 0 || balance < minesBet || isNaN(minesCount) || minesCount < 1 || minesCount > 24) {
+                    alert('Invalid bet or mines count');
+                    return;
+                }
+                updateBalance(-minesBet);
+                minesGrid = Array(25).fill(false);
+                for (let i = 0; i < minesCount; i++) {
+                    let pos;
+                    do {
+                        pos = Math.floor(Math.random() * 25);
+                    } while (minesGrid[pos]);
+                    minesGrid[pos] = true;
+                }
+                revealed = 0;
+                minesMultiplier = 1.00;
+                document.getElementById('mines-multiplier').innerText = minesMultiplier.toFixed(2);
+                const grid = document.getElementById('mines-grid');
+                grid.innerHTML = '';
+                for (let i = 0; i < 25; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.onclick = () => revealCell(i, cell);
+                    grid.appendChild(cell);
+                }
+                document.getElementById('mines-cashout').classList.remove('hidden');
+                document.getElementById('mines-result').innerText = '';
             }
-            updateBalance(-minesBet);
-            minesGrid = Array(25).fill(false);
-            for (let i = 0; i < minesCount; i++) {
-                let pos;
-                do {
-                    pos = Math.floor(Math.random() * 25);
-                } while (minesGrid[pos]);
-                minesGrid[pos] = true;
-            }
-            revealed = 0;
-            minesMultiplier = 1.00;
-            document.getElementById('mines-multiplier').innerText = minesMultiplier.toFixed(2);
-            const grid = document.getElementById('mines-grid');
-            grid.innerHTML = '';
-            for (let i = 0; i < 25; i++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.onclick = () => revealCell(i, cell);
-                grid.appendChild(cell);
-            }
-            document.getElementById('mines-cashout').classList.remove('hidden');
-            document.getElementById('mines-result').innerText = '';
         }
 
         function revealCell(index, cell) {
-            if (cell.classList.contains('revealed')) return;
-            cell.classList.add('revealed');
-            revealed++;
-            if (minesGrid[index]) {
-                cell.classList.add('mine');
-                cell.innerText = '💣';
-                document.getElementById('mines-result').innerText = 'Boom! You lose!';
-                endMines();
-            } else {
-                cell.classList.add('safe');
-                cell.innerText = '✅';
-                minesMultiplier = calculateMinesMultiplier(25 - minesCount, revealed);
-                document.getElementById('mines-multiplier').innerText = minesMultiplier.toFixed(2);
+            if (isAuthenticated && !cell.classList.contains('revealed')) {
+                cell.classList.add('revealed');
+                revealed++;
+                if (minesGrid[index]) {
+                    cell.classList.add('mine');
+                    cell.innerText = '💣';
+                    document.getElementById('mines-result').innerText = 'Boom! You lose!';
+                    endMines();
+                } else {
+                    cell.classList.add('safe');
+                    cell.innerText = '✅';
+                    minesMultiplier = calculateMinesMultiplier(25 - minesCount, revealed);
+                    document.getElementById('mines-multiplier').innerText = minesMultiplier.toFixed(2);
+                }
             }
         }
 
@@ -275,11 +515,12 @@
         }
 
         function cashoutMines() {
-            if (revealed === 0) return;
-            const win = minesBet * minesMultiplier;
-            updateBalance(win);
-            document.getElementById('mines-result').innerText = `Cashed out at ${minesMultiplier.toFixed(2)}x - Win ${win.toFixed(2)}!`;
-            endMines();
+            if (isAuthenticated && revealed > 0) {
+                const win = minesBet * minesMultiplier;
+                updateBalance(win);
+                document.getElementById('mines-result').innerText = `Cashed out at ${minesMultiplier.toFixed(2)}x - Win ${win.toFixed(2)}!`;
+                endMines();
+            }
         }
 
         function endMines() {
@@ -296,72 +537,133 @@
         let isCrashed = false;
 
         function startCrash() {
-            const bet = parseFloat(document.getElementById('crash-bet').value);
-            autoCashout = parseFloat(document.getElementById('crash-auto').value) || 0;
-            if (isNaN(bet) || bet <= 0 || balance < bet) {
-                alert('Invalid bet');
-                return;
+            if (isAuthenticated) {
+                const bet = parseFloat(document.getElementById('crash-bet').value);
+                autoCashout = parseFloat(document.getElementById('crash-auto').value) || 0;
+                if (isNaN(bet) || bet <= 0 || balance < bet) {
+                    alert('Invalid bet');
+                    return;
+                }
+                updateBalance(-bet);
+                crashBet = bet;
+                currentMultiplier = 1.00;
+                isCrashed = false;
+                const multiplierDisplay = document.getElementById('crash-multiplier');
+                multiplierDisplay.innerText = '1.00x';
+                multiplierDisplay.classList.add('active');
+                document.getElementById('crash-cashout').classList.remove('hidden');
+                const resultElem = document.getElementById('crash-result');
+                resultElem.innerText = '';
+                resultElem.classList.remove('result-animate');
+
+                const canvas = document.getElementById('crash-canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let x = 0;
+                let y = canvas.height;
+
+                const crashPoint = Math.pow(Math.random(), 4) * 100 + 1;
+                crashInterval = setInterval(() => {
+                    currentMultiplier += 0.01;
+                    x += 2;
+                    y = canvas.height - (currentMultiplier - 1) * 10;
+
+                    ctx.beginPath();
+                    ctx.moveTo(0, canvas.height);
+                    ctx.lineTo(x, y);
+                    ctx.strokeStyle = '#8B5CF6';
+                    ctx.stroke();
+
+                    // Update multiplier display
+                    multiplierDisplay.innerText = `${currentMultiplier.toFixed(2)}x`;
+
+                    if (autoCashout > 0 && currentMultiplier >= autoCashout) {
+                        cashoutCrash();
+                    }
+
+                    if (currentMultiplier >= crashPoint) {
+                        clearInterval(crashInterval);
+                        isCrashed = true;
+                        multiplierDisplay.classList.remove('active');
+                        resultElem.classList.add('result-animate');
+                        resultElem.innerText = `Crashed at ${crashPoint.toFixed(2)}x - You lose!`;
+                        document.getElementById('crash-cashout').classList.add('hidden');
+                        setTimeout(() => resultElem.classList.remove('result-animate'), 500);
+                    }
+                }, 50);
             }
-            updateBalance(-bet);
-            crashBet = bet;
-            currentMultiplier = 1.00;
-            isCrashed = false;
-            const multiplierDisplay = document.getElementById('crash-multiplier');
-            multiplierDisplay.innerText = '1.00x';
-            multiplierDisplay.classList.add('active');
-            document.getElementById('crash-cashout').classList.remove('hidden');
-            const resultElem = document.getElementById('crash-result');
-            resultElem.innerText = '';
-            resultElem.classList.remove('result-animate');
-
-            const canvas = document.getElementById('crash-canvas');
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            let x = 0;
-            let y = canvas.height;
-
-            const crashPoint = Math.pow(Math.random(), 4) * 100 + 1;
-            crashInterval = setInterval(() => {
-                currentMultiplier += 0.01;
-                x += 2;
-                y = canvas.height - (currentMultiplier - 1) * 10;
-
-                ctx.beginPath();
-                ctx.moveTo(0, canvas.height);
-                ctx.lineTo(x, y);
-                ctx.strokeStyle = '#10b981';
-                ctx.stroke();
-
-                // Update multiplier display
-                multiplierDisplay.innerText = `${currentMultiplier.toFixed(2)}x`;
-
-                if (autoCashout > 0 && currentMultiplier >= autoCashout) {
-                    cashoutCrash();
-                }
-
-                if (currentMultiplier >= crashPoint) {
-                    clearInterval(crashInterval);
-                    isCrashed = true;
-                    multiplierDisplay.classList.remove('active');
-                    resultElem.classList.add('result-animate');
-                    resultElem.innerText = `Crashed at ${crashPoint.toFixed(2)}x - You lose!`;
-                    document.getElementById('crash-cashout').classList.add('hidden');
-                    setTimeout(() => resultElem.classList.remove('result-animate'), 500);
-                }
-            }, 50);
         }
 
         function cashoutCrash() {
-            if (isCrashed || !crashInterval) return;
-            clearInterval(crashInterval);
-            const win = crashBet * currentMultiplier;
-            updateBalance(win);
-            const resultElem = document.getElementById('crash-result');
-            resultElem.classList.add('result-animate');
-            resultElem.innerText = `Cashed out at ${currentMultiplier.toFixed(2)}x - Win ${win.toFixed(2)}!`;
-            document.getElementById('crash-cashout').classList.add('hidden');
-            document.getElementById('crash-multiplier').classList.remove('active');
-            setTimeout(() => resultElem.classList.remove('result-animate'), 500);
+            if (isAuthenticated && !isCrashed && crashInterval) {
+                clearInterval(crashInterval);
+                const win = crashBet * currentMultiplier;
+                updateBalance(win);
+                const resultElem = document.getElementById('crash-result');
+                resultElem.classList.add('result-animate');
+                resultElem.innerText = `Cashed out at ${currentMultiplier.toFixed(2)}x - Win ${win.toFixed(2)}!`;
+                document.getElementById('crash-cashout').classList.add('hidden');
+                document.getElementById('crash-multiplier').classList.remove('active');
+                setTimeout(() => resultElem.classList.remove('result-animate'), 500);
+            }
+        }
+
+        // Slots
+        const symbols = ['🍒', '🍋', '🍇', '⭐', '💎', '7'];
+        let spinning = false;
+
+        function spinSlots() {
+            if (isAuthenticated && !spinning) {
+                const bet = parseFloat(document.getElementById('slots-bet').value);
+                if (isNaN(bet) || bet <= 0 || balance < bet) {
+                    alert('Invalid bet');
+                    return;
+                }
+                updateBalance(-bet);
+                spinning = true;
+                const reels = ['reel1', 'reel2', 'reel3'].map(id => document.getElementById(id).querySelector('.reel-content'));
+                reels.forEach((reel, index) => {
+                    reel.style.animation = 'none';
+                    reel.offsetHeight; // Trigger reflow
+                    const contentHeight = window.innerWidth <= 640 ? 90 : 120;
+                    const items = 3;
+                    const itemHeight = contentHeight / items;
+                    reel.innerHTML = Array(items + 2).fill().map(() => `<div style="height: ${itemHeight}px;">${symbols[Math.floor(Math.random() * symbols.length)]}</div>`).join('');
+                    reel.style.height = `${contentHeight}px`;
+                    reel.style.transform = `translateY(0)`;
+                    void reel.offsetWidth; // Trigger reflow
+                    reel.style.animation = `spin ${1.5}s ease-out forwards`;
+                    reel.style.transition = 'none';
+                });
+
+                setTimeout(() => {
+                    reels.forEach((reel, index) => {
+                        const contentHeight = window.innerWidth <= 640 ? 90 : 120;
+                        const items = 3;
+                        const itemHeight = contentHeight / items;
+                        const finalSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+                        reel.innerHTML = Array(items).fill(`<div style="height: ${itemHeight}px;">${finalSymbol}</div>`).join('') +
+                                         Array(2).fill().map(() => `<div style="height: ${itemHeight}px;">${symbols[Math.floor(Math.random() * symbols.length)]}</div>`).join('');
+                        reel.style.transform = `translateY(-${(items - 1) * itemHeight}px)`;
+                        reel.style.transition = 'transform 0.5s ease-out';
+                    });
+
+                    setTimeout(() => {
+                        const results = reels.map(reel => reel.children[reel.children.length - 3].textContent);
+                        const resultElem = document.getElementById('slots-result');
+                        resultElem.classList.add('result-animate');
+                        if (results.every(r => r === results[0])) {
+                            const win = bet * 5;
+                            updateBalance(win);
+                            resultElem.innerText = `Jackpot! ${results.join(' ')} - You win ${win.toFixed(2)}!`;
+                        } else {
+                            resultElem.innerText = `No win: ${results.join(' ')}`;
+                        }
+                        spinning = false;
+                        setTimeout(() => resultElem.classList.remove('result-animate'), 500);
+                    }, 500);
+                }, 1500);
+            }
         }
     </script>
 </body>
