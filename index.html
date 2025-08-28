@@ -1,0 +1,384 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YGSBet.com - Fake Casino with Fake Money</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        canvas {
+            border-radius: 0.5rem;
+            background-color: #1f2937;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #374151;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border-radius: 0.25rem;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .cell:hover {
+            background-color: #4b5563;
+            transform: scale(1.05);
+        }
+        .revealed {
+            background-color: #6b7280;
+            transform: scale(1);
+        }
+        .mine {
+            background-color: #dc2626;
+        }
+        .safe {
+            background-color: #16a34a;
+        }
+        .game-section {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .game-section.active {
+            display: block;
+            opacity: 1;
+        }
+        nav a {
+            transition: color 0.3s ease;
+        }
+        nav a:hover {
+            color: #a5b4fc;
+        }
+        .result-animate {
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .multiplier-indicator {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #10b981;
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+            transition: transform 0.2s ease;
+        }
+        .multiplier-indicator.active {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-4 sm:p-6">
+    <header class="w-full max-w-4xl mb-6 fixed top-0 bg-gray-900 z-10 py-4">
+        <h1 class="text-3xl sm:text-4xl font-bold text-center text-indigo-400">YGSBet.com</h1>
+        <p class="text-center text-gray-400 mt-2">Fake Casino with Fake Money</p>
+        <div class="text-center mt-4 text-2xl font-semibold bg-gray-800 py-2 px-4 rounded-lg inline-block mx-auto">
+            Balance: <span id="balance" class="text-indigo-300">10000</span> Fake Coins
+        </div>
+        <nav class="mt-4 flex justify-center space-x-4 sm:space-x-6">
+            <a href="#limbo" class="text-indigo-300 hover:text-indigo-100">Limbo</a>
+            <a href="#mines" class="text-indigo-300 hover:text-indigo-100">Mines</a>
+            <a href="#crash" class="text-indigo-300 hover:text-indigo-100">Crash</a>
+        </nav>
+    </header>
+
+    <main class="w-full max-w-4xl space-y-6 mt-32">
+        <!-- Limbo Game -->
+        <section id="limbo" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 class="text-2xl font-semibold text-indigo-300 mb-4">Limbo</h2>
+            <p class="text-gray-400 mb-4">Bet on a target multiplier. If the random number is below, you win!</p>
+            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <input type="number" id="limbo-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="number" id="limbo-target" placeholder="Target Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onclick="playLimbo()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition">Play</button>
+            </div>
+            <p id="limbo-result" class="text-gray-300"></p>
+        </section>
+
+        <!-- Mines Game -->
+        <section id="mines" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 class="text-2xl font-semibold text-indigo-300 mb-4">Mines</h2>
+            <p class="text-gray-400 mb-4">Choose number of mines (1-24), bet, and reveal cells without hitting mines.</p>
+            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <input type="number" id="mines-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="number" id="mines-count" placeholder="Number of Mines" min="1" max="24" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onclick="startMines()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition">Start</button>
+            </div>
+            <div id="mines-grid" class="grid"></div>
+            <div class="flex justify-center mt-4">
+                <button onclick="cashoutMines()" id="mines-cashout" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition hidden">Cash Out</button>
+            </div>
+            <p id="mines-result" class="text-gray-300 mt-4"></p>
+            <p class="text-gray-300 mt-2">Current Multiplier: <span id="mines-multiplier">1.00</span>x</p>
+        </section>
+
+        <!-- Crash Game -->
+        <section id="crash" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 class="text-2xl font-semibold text-indigo-300 mb-4">Crash</h2>
+            <p class="text-gray-400 mb-4">Bet and cash out before the crash!</p>
+            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <input type="number" id="crash-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="number" id="crash-auto" placeholder="Auto Cashout Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onclick="startCrash()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition">Bet</button>
+            </div>
+            <div class="flex justify-center">
+                <button onclick="cashoutCrash()" id="crash-cashout" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition hidden">Cash Out</button>
+            </div>
+            <div class="text-center my-4">
+                <span id="crash-multiplier" class="multiplier-indicator">1.00x</span>
+            </div>
+            <canvas id="crash-canvas" width="400" height="200"></canvas>
+            <p id="crash-result" class="text-gray-300 mt-4"></p>
+        </section>
+    </main>
+
+    <script>
+        let balance = 10000;
+        document.getElementById('balance').innerText = balance;
+
+        function updateBalance(amount) {
+            balance += amount;
+            document.getElementById('balance').innerText = balance;
+        }
+
+        // Navigation
+        function showGame(gameId) {
+            document.querySelectorAll('.game-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            const section = document.getElementById(gameId);
+            if (section) {
+                section.classList.add('active');
+            }
+        }
+
+        window.addEventListener('hashchange', () => {
+            const gameId = window.location.hash.slice(1);
+            showGame(gameId || 'limbo');
+        });
+
+        // Initial load
+        const initialGame = window.location.hash.slice(1) || 'limbo';
+        showGame(initialGame);
+
+        // Limbo
+        function playLimbo() {
+            const bet = parseFloat(document.getElementById('limbo-bet').value);
+            const target = parseFloat(document.getElementById('limbo-target').value);
+            if (isNaN(bet) || bet <= 0 || balance < bet || isNaN(target) || target < 1.01) {
+                alert('Invalid bet or target');
+                return;
+            }
+            updateBalance(-bet);
+            const result = (Math.random() * 100).toFixed(2);
+            const payout = target;
+            const resultElem = document.getElementById('limbo-result');
+            resultElem.classList.add('result-animate');
+            if (result < (100 / payout)) {
+                const win = bet * payout;
+                updateBalance(win);
+                resultElem.innerText = `Result: ${result}x - You win ${win.toFixed(2)}!`;
+            } else {
+                resultElem.innerText = `Result: ${result}x - You lose!`;
+            }
+            setTimeout(() => resultElem.classList.remove('result-animate'), 500);
+        }
+
+        // Mines
+        let minesGrid = [];
+        let revealed = 0;
+        let minesBet = 0;
+        let minesCount = 0;
+        let minesMultiplier = 1.00;
+
+        function startMines() {
+            minesBet = parseFloat(document.getElementById('mines-bet').value);
+            minesCount = parseInt(document.getElementById('mines-count').value);
+            if (isNaN(minesBet) || minesBet <= 0 || balance < minesBet || isNaN(minesCount) || minesCount < 1 || minesCount > 24) {
+                alert('Invalid bet or mines count');
+                return;
+            }
+            updateBalance(-minesBet);
+            minesGrid = Array(25).fill(false);
+            for (let i = 0; i < minesCount; i++) {
+                let pos;
+                do {
+                    pos = Math.floor(Math.random() * 25);
+                } while (minesGrid[pos]);
+                minesGrid[pos] = true;
+            }
+            revealed = 0;
+            minesMultiplier = 1.00;
+            document.getElementById('mines-multiplier').innerText = minesMultiplier.toFixed(2);
+            const grid = document.getElementById('mines-grid');
+            grid.innerHTML = '';
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.onclick = () => revealCell(i, cell);
+                grid.appendChild(cell);
+            }
+            document.getElementById('mines-cashout').classList.remove('hidden');
+            document.getElementById('mines-result').innerText = '';
+        }
+
+        function revealCell(index, cell) {
+            if (cell.classList.contains('revealed')) return;
+            cell.classList.add('revealed');
+            revealed++;
+            if (minesGrid[index]) {
+                cell.classList.add('mine');
+                cell.innerText = '💣';
+                document.getElementById('mines-result').innerText = 'Boom! You lose!';
+                endMines();
+            } else {
+                cell.classList.add('safe');
+                cell.innerText = '✅';
+                minesMultiplier = calculateMinesMultiplier(25 - minesCount, revealed);
+                document.getElementById('mines-multiplier').innerText = minesMultiplier.toFixed(2);
+            }
+        }
+
+        function calculateMinesMultiplier(safeCells, revealed) {
+            return 1 + (revealed / safeCells) * (minesCount + 1);
+        }
+
+        function cashoutMines() {
+            if (revealed === 0) return;
+            const win = minesBet * minesMultiplier;
+            updateBalance(win);
+            document.getElementById('mines-result').innerText = `Cashed out at ${minesMultiplier.toFixed(2)}x - Win ${win.toFixed(2)}!`;
+            endMines();
+        }
+
+        function endMines() {
+            document.getElementById('mines-cashout').classList.add('hidden');
+            const cells = document.querySelectorAll('.cell:not(.revealed)');
+            cells.forEach(cell => cell.onclick = null);
+        }
+
+        // Crash
+        let crashInterval;
+        let currentMultiplier = 1.00;
+        let crashBet = 0;
+        let autoCashout = 0;
+        let isCrashed = false;
+
+        function startCrash() {
+            const bet = parseFloat(document.getElementById('crash-bet').value);
+            autoCashout = parseFloat(document.getElementById('crash-auto').value) || 0;
+            if (isNaN(bet) || bet <= 0 || balance < bet) {
+                alert('Invalid bet');
+                return;
+            }
+            updateBalance(-bet);
+            crashBet = bet;
+            currentMultiplier = 1.00;
+            isCrashed = false;
+            const multiplierDisplay = document.getElementById('crash-multiplier');
+            multiplierDisplay.innerText = '1.00x';
+            multiplierDisplay.classList.add('active');
+            document.getElementById('crash-cashout').classList.remove('hidden');
+            const resultElem = document.getElementById('crash-result');
+            resultElem.innerText = '';
+            resultElem.classList.remove('result-animate');
+
+            const canvas = document.getElementById('crash-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let x = 0;
+            let y = canvas.height;
+
+            const crashPoint = Math.pow(Math.random(), 4) * 100 + 1;
+            crashInterval = setInterval(() => {
+                currentMultiplier += 0.01;
+                x += 2;
+                y = canvas.height - (currentMultiplier - 1) * 10;
+
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = '#10b981';
+                ctx.stroke();
+
+                // Update multiplier display
+                multiplierDisplay.innerText = `${currentMultiplier.toFixed(2)}x`;
+
+                if (autoCashout > 0 && currentMultiplier >= autoCashout) {
+                    cashoutCrash();
+                }
+
+                if (currentMultiplier >= crashPoint) {
+                    clearInterval(crashInterval);
+                    isCrashed = true;
+                    multiplierDisplay.classList.remove('active');
+                    resultElem.classList.add('result-animate');
+                    resultElem.innerText = `Crashed at ${crashPoint.toFixed(2)}x - You lose!`;
+                    document.getElementById('crash-cashout').classList.add('hidden');
+                    setTimeout(() => resultElem.classList.remove('result-animate'), 500);
+                }
+            }, 50);
+        }
+
+        function cashoutCrash() {
+            if (isCrashed || !crashInterval) return;
+            clearInterval(crashInterval);
+            const win = crashBet * currentMultiplier;
+            updateBalance(win);
+            const resultElem = document.getElementById('crash-result');
+            resultElem.classList.add('result-animate');
+            resultElem.innerText = `Cashed out at ${currentMultiplier.toFixed(2)}x - Win ${win.toFixed(2)}!`;
+            document.getElementById('crash-cashout').classList.add('hidden');
+            document.getElementById('crash-multiplier').classList.remove('active');
+            setTimeout(() => resultElem.classList.remove('result-animate'), 500);
+        }
+    </script>
+</body>
+</html>
