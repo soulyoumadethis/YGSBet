@@ -1,50 +1,15 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YGSBet.com - Fake Casino with Fake Money</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
         canvas {
             border-radius: 0.5rem;
             background-color: #1f2937;
@@ -91,10 +56,13 @@
             opacity: 1;
         }
         nav a {
-            transition: color 0.3s ease;
+            transition: color 0.3s ease, background-color 0.3s ease;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
         }
         nav a:hover {
-            color: #a5b4fc;
+            color: #ffffff;
+            background-color: #4f46e5;
         }
         .result-animate {
             animation: fadeIn 0.5s ease;
@@ -113,14 +81,23 @@
         .multiplier-indicator.active {
             transform: scale(1.1);
         }
+        input:focus {
+            ring-color: #6366f1;
+        }
+        button {
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col items-center p-4 sm:p-6">
-    <header class="w-full max-w-4xl mb-6 fixed top-0 bg-gray-900 z-10 py-4">
-        <h1 class="text-3xl sm:text-4xl font-bold text-center text-indigo-400">YGSBet.com</h1>
-        <p class="text-center text-gray-400 mt-2">The best casino nigga wym</p>
+    <header class="w-full max-w-4xl mb-6 fixed top-0 bg-gray-900 z-10 py-4 shadow-md">
+        <div class="flex justify-between items-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-indigo-400">YGSBet.com</h1>
+            <button id="reset-balance" class="bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded-lg text-sm transition">Reset Balance</button>
+        </div>
+        <p class="text-center text-gray-400 mt-2">Fake Casino with Fake Money</p>
         <div class="text-center mt-4 text-2xl font-semibold bg-gray-800 py-2 px-4 rounded-lg inline-block mx-auto">
-            Balance: <span id="balance" class="text-indigo-300">10000</span> YGS Coins
+            Balance: <span id="balance" class="text-indigo-300">10000</span> Fake Coins
         </div>
         <nav class="mt-4 flex justify-center space-x-4 sm:space-x-6">
             <a href="#limbo" class="text-indigo-300 hover:text-indigo-100">Limbo</a>
@@ -129,17 +106,17 @@
         </nav>
     </header>
 
-    <main class="w-full max-w-4xl space-y-6 mt-32">
+    <main class="w-full max-w-4xl space-y-6 mt-40">
         <!-- Limbo Game -->
         <section id="limbo" class="game-section bg-gray-800 rounded-lg p-6 shadow-lg">
             <h2 class="text-2xl font-semibold text-indigo-300 mb-4">Limbo</h2>
             <p class="text-gray-400 mb-4">Bet on a target multiplier. If the random number is below, you win!</p>
             <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <input type="number" id="limbo-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <input type="number" id="limbo-target" placeholder="Target Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <button onclick="playLimbo()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition">Play</button>
+                <input type="number" id="limbo-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
+                <input type="number" id="limbo-target" placeholder="Target Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
+                <button onclick="playLimbo()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg transition">Play</button>
             </div>
-            <p id="limbo-result" class="text-gray-300"></p>
+            <p id="limbo-result" class="text-gray-300 font-medium"></p>
         </section>
 
         <!-- Mines Game -->
@@ -147,16 +124,16 @@
             <h2 class="text-2xl font-semibold text-indigo-300 mb-4">Mines</h2>
             <p class="text-gray-400 mb-4">Choose number of mines (1-24), bet, and reveal cells without hitting mines.</p>
             <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <input type="number" id="mines-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <input type="number" id="mines-count" placeholder="Number of Mines" min="1" max="24" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <button onclick="startMines()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition">Start</button>
+                <input type="number" id="mines-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
+                <input type="number" id="mines-count" placeholder="Number of Mines" min="1" max="24" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
+                <button onclick="startMines()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg transition">Start</button>
             </div>
             <div id="mines-grid" class="grid"></div>
             <div class="flex justify-center mt-4">
-                <button onclick="cashoutMines()" id="mines-cashout" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition hidden">Cash Out</button>
+                <button onclick="cashoutMines()" id="mines-cashout" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg transition hidden">Cash Out</button>
             </div>
-            <p id="mines-result" class="text-gray-300 mt-4"></p>
-            <p class="text-gray-300 mt-2">Current Multiplier: <span id="mines-multiplier">1.00</span>x</p>
+            <p id="mines-result" class="text-gray-300 mt-4 font-medium"></p>
+            <p class="text-gray-300 mt-2 font-medium">Current Multiplier: <span id="mines-multiplier">1.00</span>x</p>
         </section>
 
         <!-- Crash Game -->
@@ -164,29 +141,36 @@
             <h2 class="text-2xl font-semibold text-indigo-300 mb-4">Crash</h2>
             <p class="text-gray-400 mb-4">Bet and cash out before the crash!</p>
             <div class="flex flex-col sm:flex-row gap-4 mb-4">
-                <input type="number" id="crash-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <input type="number" id="crash-auto" placeholder="Auto Cashout Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <button onclick="startCrash()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg transition">Bet</button>
+                <input type="number" id="crash-bet" placeholder="Bet Amount" min="1" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
+                <input type="number" id="crash-auto" placeholder="Auto Cashout Multiplier" min="1.01" step="0.01" class="bg-gray-700 text-white p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-1">
+                <button onclick="startCrash()" class="bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-lg transition">Bet</button>
             </div>
             <div class="flex justify-center">
-                <button onclick="cashoutCrash()" id="crash-cashout" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition hidden">Cash Out</button>
+                <button onclick="cashoutCrash()" id="crash-cashout" class="bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg transition hidden">Cash Out</button>
             </div>
             <div class="text-center my-4">
                 <span id="crash-multiplier" class="multiplier-indicator">1.00x</span>
             </div>
             <canvas id="crash-canvas" width="400" height="200"></canvas>
-            <p id="crash-result" class="text-gray-300 mt-4"></p>
+            <p id="crash-result" class="text-gray-300 mt-4 font-medium"></p>
         </section>
     </main>
 
     <script>
-        let balance = 10000;
-        document.getElementById('balance').innerText = balance;
+        let balance = localStorage.getItem('balance') ? parseFloat(localStorage.getItem('balance')) : 10000;
+        document.getElementById('balance').innerText = balance.toFixed(0);
 
         function updateBalance(amount) {
             balance += amount;
-            document.getElementById('balance').innerText = balance;
+            document.getElementById('balance').innerText = balance.toFixed(0);
+            localStorage.setItem('balance', balance);
         }
+
+        document.getElementById('reset-balance').addEventListener('click', () => {
+            balance = 10000;
+            updateBalance(0); // To save and update display
+            alert('Balance reset to 10,000 Fake Coins!');
+        });
 
         // Navigation
         function showGame(gameId) {
